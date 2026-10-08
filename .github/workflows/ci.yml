@@ -28,8 +28,10 @@ jobs:
 
       - name: Run PyTest
         working-directory: backend
+        env:
+          PYTHONPATH: .
         run: |
-          pytest tests -v
+          python -m pytest tests -v
 
   test-frontend:
     name: Frontend Build & Typecheck
