@@ -35,12 +35,16 @@ class UpstoxMarketFeed:
             "Authorization": f"Bearer {self.token}"
         }
 
+        import time
+        start_t = time.time()
         try:
             async with httpx.AsyncClient(timeout=6.0) as client:
                 res = await client.get(
-                    f"{UPSTOX_BASE_URL}/market-quote/quotes?instrument_key=NSE_INDEX|Nifty 50",
+                    f"{UPSTOX_BASE_URL}/market-quote/quotes",
+                    params={"instrument_key": "NSE_INDEX|Nifty 50"},
                     headers=headers
                 )
+                latency_ms = round((time.time() - start_t) * 1000, 1)
                 if res.status_code == 200:
                     self.is_connected = True
                     self.last_error = None
@@ -49,16 +53,17 @@ class UpstoxMarketFeed:
                     return {
                         "connected": True,
                         "nifty_ltp": quote.get("last_price", 0.0),
-                        "timestamp": quote.get("timestamp")
+                        "timestamp": quote.get("timestamp"),
+                        "latency_ms": latency_ms
                     }
                 elif res.status_code == 401:
                     self.is_connected = False
                     self.last_error = "Token expired or unauthorized (SEBI daily re-auth required)"
-                    return {"connected": False, "reason": self.last_error}
+                    return {"connected": False, "reason": self.last_error, "status_code": 401}
                 else:
                     self.is_connected = False
                     self.last_error = f"Upstox API returned status {res.status_code}"
-                    return {"connected": False, "reason": self.last_error}
+                    return {"connected": False, "reason": self.last_error, "status_code": res.status_code}
 
         except Exception as e:
             self.is_connected = False
@@ -78,14 +83,18 @@ class UpstoxMarketFeed:
         keys = ",".join(cfg["instrument_token"] for cfg in INDEX_CONFIG.values())
         try:
             async with httpx.AsyncClient(timeout=5.0) as client:
-                res = await client.get(f"{UPSTOX_BASE_URL}/market-quote/quotes?instrument_key={keys}", headers=headers)
+                res = await client.get(
+                    f"{UPSTOX_BASE_URL}/market-quote/quotes",
+                    params={"instrument_key": keys},
+                    headers=headers
+                )
                 if res.status_code == 200:
                     data = res.json().get("data", {})
                     quotes = {}
                     for sym, cfg in INDEX_CONFIG.items():
                         token = cfg["instrument_token"]
                         for k, v in data.items():
-                            if token in k:
+                            if token in k or sym.lower() in k.lower():
                                 quotes[sym] = float(v.get("last_price", 0.0))
                     return quotes
         except Exception as e:

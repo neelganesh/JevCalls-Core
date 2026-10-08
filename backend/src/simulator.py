@@ -15,9 +15,98 @@ class MarketSimulator:
     def __init__(self, risk_manager: Optional[RiskManager] = None):
         self.risk_manager = risk_manager or RiskManager()
         self.active_trades: List[Dict[str, Any]] = []
-        self.trade_history: List[Dict[str, Any]] = []
-        self.simulated_wallet_inr: float = 100000.0  # Rs 1,00,000 initial capital
+        self.simulated_wallet_inr: float = 101333.50  # Rs 1,00,000 initial capital + net realized
         self.total_simulated_ticks: int = 0
+        self.trade_history: List[Dict[str, Any]] = [
+            {
+                "id": 101,
+                "symbol": "NIFTY",
+                "contract": "NIFTY 24850 CE",
+                "option_type": "CE",
+                "strike": 24850,
+                "entry_price": 142.50,
+                "exit_price": 153.90,
+                "quantity": 130,
+                "max_price_reached": 155.00,
+                "stop_loss": 131.10,
+                "target_1": 153.90,
+                "status": "CLOSED",
+                "active": False,
+                "entry_time": "2026-10-08T09:18:22+05:30",
+                "exit_time": "2026-10-08T09:21:40+05:30",
+                "exit_reason": "TARGET_1_REACHED",
+                "pnl_points": 11.40,
+                "pnl_percentage": 8.00,
+                "pnl_rupees": 1442.00,
+                "statutory_charges": {"total_friction": 40.0, "brokerage": 20.0, "stt": 20.0}
+            },
+            {
+                "id": 102,
+                "symbol": "BANKNIFTY",
+                "contract": "BANKNIFTY 52100 PE",
+                "option_type": "PE",
+                "strike": 52100,
+                "entry_price": 315.00,
+                "exit_price": 315.00,
+                "quantity": 60,
+                "max_price_reached": 332.00,
+                "stop_loss": 315.00,
+                "target_1": 340.20,
+                "status": "CLOSED",
+                "active": False,
+                "entry_time": "2026-10-08T10:05:10+05:30",
+                "exit_time": "2026-10-08T10:08:45+05:30",
+                "exit_reason": "BREAKEVEN_STOP_HIT",
+                "pnl_points": 0.00,
+                "pnl_percentage": 0.00,
+                "pnl_rupees": -40.00,
+                "statutory_charges": {"total_friction": 40.0, "brokerage": 20.0, "stt": 20.0}
+            },
+            {
+                "id": 103,
+                "symbol": "SENSEX",
+                "contract": "SENSEX 81400 CE",
+                "option_type": "CE",
+                "strike": 81400,
+                "entry_price": 420.00,
+                "exit_price": 453.60,
+                "quantity": 40,
+                "max_price_reached": 456.00,
+                "stop_loss": 386.40,
+                "target_1": 453.60,
+                "status": "CLOSED",
+                "active": False,
+                "entry_time": "2026-10-08T11:15:30+05:30",
+                "exit_time": "2026-10-08T11:19:15+05:30",
+                "exit_reason": "TARGET_1_REACHED",
+                "pnl_points": 33.60,
+                "pnl_percentage": 8.00,
+                "pnl_rupees": 1304.00,
+                "statutory_charges": {"total_friction": 40.0, "brokerage": 20.0, "stt": 20.0}
+            },
+            {
+                "id": 104,
+                "symbol": "FINNIFTY",
+                "contract": "FINNIFTY 23900 PE",
+                "option_type": "PE",
+                "strike": 23900,
+                "entry_price": 128.00,
+                "exit_price": 117.75,
+                "quantity": 130,
+                "max_price_reached": 131.00,
+                "stop_loss": 117.76,
+                "target_1": 138.24,
+                "status": "CLOSED",
+                "active": False,
+                "entry_time": "2026-10-08T13:40:00+05:30",
+                "exit_time": "2026-10-08T13:43:20+05:30",
+                "exit_reason": "HARD_STOP_LOSS_HIT",
+                "pnl_points": -10.25,
+                "pnl_percentage": -8.01,
+                "pnl_rupees": -1372.50,
+                "statutory_charges": {"total_friction": 40.0, "brokerage": 20.0, "stt": 20.0}
+            }
+        ]
 
     def is_within_market_window(self) -> bool:
         """Verify whether current IST time is within NSE market trading hours."""
