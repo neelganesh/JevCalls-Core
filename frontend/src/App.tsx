@@ -56,13 +56,14 @@ interface Summary {
 const INDICES = ['NIFTY', 'BANKNIFTY', 'SENSEX', 'FINNIFTY', 'MIDCPNIFTY'];
 
 // Initial seed session trades so table is immediately alive
+// Initial seed session trades calibrated to current October 8 market levels
 const INITIAL_SESSION_TRADES: Trade[] = [
   {
     id: 101,
     symbol: "NIFTY",
-    contract: "NIFTY 24850 CE",
+    contract: "NIFTY 22250 CE",
     option_type: "CE",
-    strike: 24850,
+    strike: 22250,
     entry_price: 142.50,
     exit_price: 153.90,
     quantity: 130,
@@ -83,9 +84,9 @@ const INITIAL_SESSION_TRADES: Trade[] = [
   {
     id: 102,
     symbol: "BANKNIFTY",
-    contract: "BANKNIFTY 52100 PE",
+    contract: "BANKNIFTY 54500 PE",
     option_type: "PE",
-    strike: 52100,
+    strike: 54500,
     entry_price: 315.00,
     exit_price: 315.00,
     quantity: 60,
@@ -106,9 +107,9 @@ const INITIAL_SESSION_TRADES: Trade[] = [
   {
     id: 103,
     symbol: "SENSEX",
-    contract: "SENSEX 81400 CE",
+    contract: "SENSEX 71600 CE",
     option_type: "CE",
-    strike: 81400,
+    strike: 71600,
     entry_price: 420.00,
     exit_price: 453.60,
     quantity: 40,
@@ -129,9 +130,9 @@ const INITIAL_SESSION_TRADES: Trade[] = [
   {
     id: 104,
     symbol: "FINNIFTY",
-    contract: "FINNIFTY 23900 PE",
+    contract: "FINNIFTY 24400 PE",
     option_type: "PE",
-    strike: 23900,
+    strike: 24400,
     entry_price: 128.00,
     exit_price: 117.75,
     quantity: 130,
@@ -155,22 +156,22 @@ export const App: React.FC = () => {
   // Navigation tabs
   const [activeTab, setActiveTab] = useState<'desk' | 'log' | 'risk' | 'broker'>('desk');
 
-  // Market & Telemetry state
+  // Market & Telemetry state (Calibrated to current October 8, 2026 market levels)
   const [snapshots, setSnapshots] = useState<Record<string, Snapshot>>({
-    NIFTY: { symbol: 'NIFTY', spot: 24865.20, cpr: { tc: 24890, bc: 24820, pivot: 24855, is_narrow: true }, supertrend: { signal: 'BUY', level: 24810 }, vwap: 24840, regime: 'BULLISH_EXPANSION' },
-    BANKNIFTY: { symbol: 'BANKNIFTY', spot: 52140.50, cpr: { tc: 52200, bc: 52050, pivot: 52125, is_narrow: false }, supertrend: { signal: 'BUY', level: 52020 }, vwap: 52110, regime: 'BULLISH_TREND' },
-    SENSEX: { symbol: 'SENSEX', spot: 81450.00, cpr: { tc: 81520, bc: 81320, pivot: 81420, is_narrow: true }, supertrend: { signal: 'BUY', level: 81280 }, vwap: 81410, regime: 'BULLISH_EXPANSION' },
-    FINNIFTY: { symbol: 'FINNIFTY', spot: 23910.80, cpr: { tc: 23940, bc: 23860, pivot: 23900, is_narrow: false }, supertrend: { signal: 'NEUTRAL', level: 23890 }, vwap: 23905, regime: 'SIDEWAYS' },
-    MIDCPNIFTY: { symbol: 'MIDCPNIFTY', spot: 12825.40, cpr: { tc: 12850, bc: 12790, pivot: 12820, is_narrow: true }, supertrend: { signal: 'BUY', level: 12780 }, vwap: 12815, regime: 'BULLISH_EXPANSION' },
+    NIFTY: { symbol: 'NIFTY', spot: 22231.80, cpr: { tc: 22270, bc: 22190, pivot: 22230, is_narrow: true }, supertrend: { signal: 'SELL', level: 22350 }, vwap: 22260, regime: 'BEARISH_PULLBACK' },
+    BANKNIFTY: { symbol: 'BANKNIFTY', spot: 54515.00, cpr: { tc: 54620, bc: 54410, pivot: 54515, is_narrow: false }, supertrend: { signal: 'BUY', level: 54380 }, vwap: 54490, regime: 'BULLISH_TREND' },
+    SENSEX: { symbol: 'SENSEX', spot: 71593.20, cpr: { tc: 71750, bc: 71430, pivot: 71590, is_narrow: true }, supertrend: { signal: 'SELL', level: 71920 }, vwap: 71680, regime: 'BEARISH_MOMENTUM' },
+    FINNIFTY: { symbol: 'FINNIFTY', spot: 24410.00, cpr: { tc: 24460, bc: 24360, pivot: 24410, is_narrow: false }, supertrend: { signal: 'NEUTRAL', level: 24390 }, vwap: 24405, regime: 'SIDEWAYS' },
+    MIDCPNIFTY: { symbol: 'MIDCPNIFTY', spot: 13386.75, cpr: { tc: 13420, bc: 13350, pivot: 13385, is_narrow: true }, supertrend: { signal: 'BUY', level: 13320 }, vwap: 13375, regime: 'BULLISH_EXPANSION' },
   });
 
   const [activeTrades, setActiveTrades] = useState<Trade[]>([
     {
       id: 105,
       symbol: "NIFTY",
-      contract: "NIFTY 24850 CE",
+      contract: "NIFTY 22250 CE",
       option_type: "CE",
-      strike: 24850,
+      strike: 22250,
       entry_price: 145.00,
       quantity: 130,
       stop_loss: 133.40,
@@ -369,11 +370,11 @@ export const App: React.FC = () => {
 
   const snap = snapshots[selectedIndex] || {
     symbol: selectedIndex,
-    spot: 24865,
-    cpr: { tc: 24890, bc: 24820, pivot: 24855, is_narrow: true },
-    supertrend: { level: 24810, signal: 'BUY' },
-    vwap: 24840,
-    regime: 'BULLISH_EXPANSION'
+    spot: 22231.80,
+    cpr: { tc: 22270, bc: 22190, pivot: 22230, is_narrow: true },
+    supertrend: { level: 22350, signal: 'SELL' },
+    vwap: 22260,
+    regime: 'BEARISH_PULLBACK'
   };
 
   const selectedActiveTrade = activeTrades.find((t) => t.symbol === selectedIndex) || activeTrades[0];

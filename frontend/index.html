@@ -10,6 +10,21 @@
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   </head>
   <body class="bg-[#f8fafc] text-[#0f172a] antialiased selection:bg-indigo-100 selection:text-indigo-900">
+    <script>
+      // Clean up any legacy Service Worker and stale cache from old PWA
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function(registrations) {
+          for (let registration of registrations) {
+            registration.unregister();
+          }
+        });
+      }
+      if ('caches' in window) {
+        caches.keys().then(function(names) {
+          for (let name of names) caches.delete(name);
+        });
+      }
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

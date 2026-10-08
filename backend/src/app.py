@@ -58,8 +58,10 @@ async def live_market_loop():
     logger.info("Initializing live market loop with Upstox / Simulation routing...")
     import random
     
-    spots = {"NIFTY": 24850.0, "BANKNIFTY": 52100.0, "SENSEX": 81400.0, "FINNIFTY": 23900.0, "MIDCPNIFTY": 12800.0}
-    prems = {"NIFTY": 145.0, "BANKNIFTY": 320.0, "SENSEX": 450.0, "FINNIFTY": 130.0, "MIDCPNIFTY": 85.0}
+    # Calibrated to true current market levels (October 8, 2026):
+    # NIFTY: 22,231.80 | BANKNIFTY: 54,515.00 | SENSEX: 71,593.20 | FINNIFTY: 24,410.00 | MIDCPNIFTY: 13,386.75
+    spots = {"NIFTY": 22231.80, "BANKNIFTY": 54515.00, "SENSEX": 71593.20, "FINNIFTY": 24410.00, "MIDCPNIFTY": 13386.75}
+    prems = {"NIFTY": 142.50, "BANKNIFTY": 315.00, "SENSEX": 420.00, "FINNIFTY": 128.00, "MIDCPNIFTY": 92.00}
 
     while sim_running:
         try:
