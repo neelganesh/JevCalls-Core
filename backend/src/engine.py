@@ -36,19 +36,34 @@ class JevCoreEngine:
                 "timestamp": datetime.now(IST).isoformat()
             }
 
-    def evaluate_setup(self, index: str, spot: float, candles: List[Dict[str, float]], atm_call_prem: float, atm_put_prem: float) -> Optional[Dict[str, Any]]:
+    def evaluate_setup(
+        self, 
+        index: str, 
+        spot: float, 
+        candles: List[Dict[str, float]], 
+        atm_call_prem: float, 
+        atm_put_prem: float,
+        live_vwap: Optional[float] = None,
+        live_cpr: Optional[Dict[str, Any]] = None,
+        greeks: Optional[Dict[str, Any]] = None
+    ) -> Optional[Dict[str, Any]]:
         """
-        Evaluate high-probability intraday scalping setup:
-        - Price > TC and Supertrend == BUY -> Scalp BUY CE
-        - Price < BC and Supertrend == SELL -> Scalp BUY PE
+        Evaluate high-probability intraday scalping setup using Upstox native data when available:
+        - Price > TC and Supertrend == BUY and Price > VWAP -> Scalp BUY CE
+        - Price < BC and Supertrend == SELL and Price < VWAP -> Scalp BUY PE
         """
         if not candles or len(candles) < 5:
             return None
 
-        # 1. CPR Calculation
-        prev_day = candles[-1] # or daily candle
-        cpr = calculate_cpr(prev_day["high"], prev_day["low"], prev_day["close"])
-        vwap = calculate_vwap(candles)
+        # 1. CPR: use official Upstox daily OHLC if provided, else compute from candle
+        if live_cpr and live_cpr.get("tc"):
+            cpr = live_cpr
+        else:
+            prev_day = candles[-1]
+            cpr = calculate_cpr(prev_day["high"], prev_day["low"], prev_day["close"])
+
+        # 2. VWAP: use native Upstox exchange ATP if provided, else compute
+        vwap = live_vwap if (live_vwap and live_vwap > 0) else calculate_vwap(candles)
         st_level, st_direction = calculate_supertrend(candles)
 
         step = INDEX_CONFIG[index]["strike_step"]
@@ -76,8 +91,9 @@ class JevCoreEngine:
             "spot": spot,
             "cpr": cpr,
             "supertrend": {"level": st_level, "signal": st_direction},
-            "vwap": vwap,
+            "vwap": round(vwap, 2),
             "regime": "BULLISH_EXPANSION" if signal == "BUY_CE" else ("BEARISH_EXPANSION" if signal == "BUY_PE" else "SIDEWAYS"),
+            "greeks": greeks or {},
             "timestamp": datetime.now(IST).isoformat()
         }
 

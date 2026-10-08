@@ -14,6 +14,7 @@ from pydantic import BaseModel
 from src.config import config, INDEX_CONFIG
 from src.engine import JevCoreEngine
 from src.market_feed import market_feed
+from src.indicators import calculate_cpr
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 logger = logging.getLogger("app")
@@ -65,29 +66,58 @@ async def live_market_loop():
 
     while sim_running:
         try:
-            # 1. Check if live Upstox feed is active
+            # 1. Fetch live quotes with native VWAP & OHLC if Upstox token configured
             live_quotes = await market_feed.get_multi_quotes() if market_feed.token else {}
 
             for sym in INDEX_CONFIG.keys():
-                if live_quotes.get(sym):
-                    spots[sym] = live_quotes[sym]
+                vwap_val = None
+                cpr_val = None
+                opt_data = None
+
+                if sym in live_quotes:
+                    q = live_quotes[sym]
+                    spots[sym] = q["spot"]
+                    vwap_val = q.get("vwap")
+                    ohlc = q.get("ohlc", {})
+                    if ohlc.get("high") and ohlc.get("low") and ohlc.get("close"):
+                        cpr_val = calculate_cpr(ohlc["high"], ohlc["low"], ohlc["close"])
+
+                    # Fetch live Option Chain and ATM strike premiums directly from Upstox
+                    opt_data = await market_feed.get_atm_option_premiums(sym, spots[sym])
+                    if opt_data:
+                        call_prem = opt_data["call"]["ltp"] if opt_data["call"]["passes_premium_filter"] else 0.0
+                        put_prem = opt_data["put"]["ltp"] if opt_data["put"]["passes_premium_filter"] else 0.0
+                        prems[sym] = call_prem or put_prem or prems.get(sym, 100.0)
+                    else:
+                        call_prem = prems.get(sym, 100.0)
+                        put_prem = prems.get(sym, 100.0)
                 else:
                     delta = random.uniform(-2.5, 3.0)
                     spots[sym] = round(spots.get(sym, 20000.0) + delta, 2)
-
-                prem_delta = random.uniform(-1.5, 1.8)
-                prems[sym] = round(max(15.0, prems.get(sym, 100.0) + prem_delta), 2)
+                    prem_delta = random.uniform(-1.5, 1.8)
+                    prems[sym] = round(max(15.0, prems.get(sym, 100.0) + prem_delta), 2)
+                    call_prem = prems[sym]
+                    put_prem = prems[sym]
 
                 # Process tick
                 engine.ingest_tick(sym, spots[sym], prems[sym])
 
-                # Synthetic setup trigger for simulation testing
+                # Evaluate setup using native Upstox VWAP, CPR & Greeks when available
                 if random.random() < 0.04 and not engine.simulator.active_trades:
                     candles = [
                         {"high": spots[sym] + 30, "low": spots[sym] - 25, "close": spots[sym] - 5, "volume": 1000},
                         {"high": spots[sym] + 40, "low": spots[sym] - 20, "close": spots[sym] + 15, "volume": 1200},
                     ]
-                    engine.evaluate_setup(sym, spots[sym], candles, prems[sym], prems[sym])
+                    engine.evaluate_setup(
+                        index=sym,
+                        spot=spots[sym],
+                        candles=candles,
+                        atm_call_prem=call_prem,
+                        atm_put_prem=put_prem,
+                        live_vwap=vwap_val,
+                        live_cpr=cpr_val,
+                        greeks=opt_data.get("call", {}).get("greeks") if opt_data else None
+                    )
 
             # Broadcast real-time telemetry including Trade History Log
             telemetry = {
