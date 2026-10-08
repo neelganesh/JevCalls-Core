@@ -2,7 +2,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Activity, ShieldAlert, TrendingUp, TrendingDown, CheckCircle2, 
   RefreshCw, AlertTriangle, Zap, Settings, X, ArrowUpRight, ArrowDownRight, 
-  Clock, ExternalLink, Filter, Search, Award, HelpCircle, ChevronRight, Sliders
+  Clock, ExternalLink, Filter, Search, Award, HelpCircle, ChevronRight, Sliders,
+  BarChart2, History, ShieldCheck, KeyRound
 } from 'lucide-react';
 import { HISTORICAL_TRADES } from './data/historicalTrades';
 
@@ -55,103 +56,6 @@ interface Summary {
 
 const INDICES = ['NIFTY', 'BANKNIFTY', 'SENSEX', 'FINNIFTY', 'MIDCPNIFTY'];
 
-// Initial seed session trades so table is immediately alive
-// Initial seed session trades calibrated to current October 8 market levels
-const INITIAL_SESSION_TRADES: Trade[] = [
-  {
-    id: 101,
-    symbol: "NIFTY",
-    contract: "NIFTY 22250 CE",
-    option_type: "CE",
-    strike: 22250,
-    entry_price: 142.50,
-    exit_price: 153.90,
-    quantity: 130,
-    max_price_reached: 155.00,
-    stop_loss: 131.10,
-    target_1: 153.90,
-    breakeven_locked: true,
-    status: "CLOSED",
-    active: false,
-    entry_time: "2026-10-08T09:18:22+05:30",
-    exit_time: "2026-10-08T09:21:40+05:30",
-    exit_reason: "TARGET_1_REACHED",
-    pnl_points: 11.40,
-    pnl_percentage: 8.00,
-    pnl_rupees: 1442.00,
-    statutory_charges: { total_friction: 40.0, brokerage: 20.0, stt: 20.0 }
-  },
-  {
-    id: 102,
-    symbol: "BANKNIFTY",
-    contract: "BANKNIFTY 54500 PE",
-    option_type: "PE",
-    strike: 54500,
-    entry_price: 315.00,
-    exit_price: 315.00,
-    quantity: 60,
-    max_price_reached: 332.00,
-    stop_loss: 315.00,
-    target_1: 340.20,
-    breakeven_locked: true,
-    status: "CLOSED",
-    active: false,
-    entry_time: "2026-10-08T10:05:10+05:30",
-    exit_time: "2026-10-08T10:08:45+05:30",
-    exit_reason: "BREAKEVEN_STOP_HIT",
-    pnl_points: 0.00,
-    pnl_percentage: 0.00,
-    pnl_rupees: -40.00,
-    statutory_charges: { total_friction: 40.0, brokerage: 20.0, stt: 20.0 }
-  },
-  {
-    id: 103,
-    symbol: "SENSEX",
-    contract: "SENSEX 71600 CE",
-    option_type: "CE",
-    strike: 71600,
-    entry_price: 420.00,
-    exit_price: 453.60,
-    quantity: 40,
-    max_price_reached: 456.00,
-    stop_loss: 386.40,
-    target_1: 453.60,
-    breakeven_locked: true,
-    status: "CLOSED",
-    active: false,
-    entry_time: "2026-10-08T11:15:30+05:30",
-    exit_time: "2026-10-08T11:19:15+05:30",
-    exit_reason: "TARGET_1_REACHED",
-    pnl_points: 33.60,
-    pnl_percentage: 8.00,
-    pnl_rupees: 1304.00,
-    statutory_charges: { total_friction: 40.0, brokerage: 20.0, stt: 20.0 }
-  },
-  {
-    id: 104,
-    symbol: "FINNIFTY",
-    contract: "FINNIFTY 24400 PE",
-    option_type: "PE",
-    strike: 24400,
-    entry_price: 128.00,
-    exit_price: 117.75,
-    quantity: 130,
-    max_price_reached: 131.00,
-    stop_loss: 117.76,
-    target_1: 138.24,
-    breakeven_locked: false,
-    status: "CLOSED",
-    active: false,
-    entry_time: "2026-10-08T13:40:00+05:30",
-    exit_time: "2026-10-08T13:43:20+05:30",
-    exit_reason: "HARD_STOP_LOSS_HIT",
-    pnl_points: -10.25,
-    pnl_percentage: -8.01,
-    pnl_rupees: -1372.50,
-    statutory_charges: { total_friction: 40.0, brokerage: 20.0, stt: 20.0 }
-  }
-];
-
 export const App: React.FC = () => {
   // Navigation tabs
   const [activeTab, setActiveTab] = useState<'desk' | 'log' | 'risk' | 'broker'>('desk');
@@ -165,44 +69,23 @@ export const App: React.FC = () => {
     MIDCPNIFTY: { symbol: 'MIDCPNIFTY', spot: 13386.75, cpr: { tc: 13420, bc: 13350, pivot: 13385, is_narrow: true }, supertrend: { signal: 'BUY', level: 13320 }, vwap: 13375, regime: 'BULLISH_EXPANSION' },
   });
 
-  const [activeTrades, setActiveTrades] = useState<Trade[]>([
-    {
-      id: 105,
-      symbol: "NIFTY",
-      contract: "NIFTY 22250 CE",
-      option_type: "CE",
-      strike: 22250,
-      entry_price: 145.00,
-      quantity: 130,
-      stop_loss: 133.40,
-      target_1: 156.60,
-      max_price_reached: 151.20,
-      breakeven_locked: true,
-      status: "ACTIVE",
-      active: true,
-      entry_time: new Date().toISOString(),
-      pnl_points: 6.20,
-      pnl_percentage: 4.28,
-      pnl_rupees: 806.00
-    }
-  ]);
-
-  const [sessionTrades, setSessionTrades] = useState<Trade[]>(INITIAL_SESSION_TRADES);
+  const [activeTrades, setActiveTrades] = useState<Trade[]>([]);
+  const [sessionTrades, setSessionTrades] = useState<Trade[]>([]);
   const [logView, setLogView] = useState<'session' | 'historical'>('session');
   const [selectedLogIndex, setSelectedLogIndex] = useState<string>('ALL');
   const [selectedOutcome, setSelectedOutcome] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState<string>('');
 
   const [summary, setSummary] = useState<Summary>({
-    total_trades: 4,
-    wins: 2,
-    losses: 1,
-    breakevens: 1,
-    win_rate: 50.0,
-    total_net_pnl_inr: 1333.50,
-    active_trades: 1,
-    wallet_balance_inr: 101333.50,
-    daily_realized_loss: -1372.50,
+    total_trades: 0,
+    wins: 0,
+    losses: 0,
+    breakevens: 0,
+    win_rate: 0.0,
+    total_net_pnl_inr: 0.0,
+    active_trades: 0,
+    wallet_balance_inr: 100000.0,
+    daily_realized_loss: 0.0,
     circuit_breaker_active: false
   });
 
@@ -320,7 +203,7 @@ export const App: React.FC = () => {
       const data = await res.json();
       setTokenLoading(false);
       if (data.connected) {
-        setTokenStatusMsg(`✓ Success! Connected to Upstox (Nifty 50 LTP: ₹${data.nifty_ltp}, Latency: ${data.latency_ms}ms)`);
+        setTokenStatusMsg(`Connected to Upstox (Nifty 50 LTP: ₹${data.nifty_ltp}, Latency: ${data.latency_ms}ms)`);
         setBrokerInfo({ is_live: true, has_token: true, latency_ms: data.latency_ms });
         setTimeout(() => {
           setShowTokenModal(false);
@@ -409,26 +292,34 @@ export const App: React.FC = () => {
           <button 
             className={`tab-pill ${activeTab === 'desk' ? 'active' : ''}`}
             onClick={() => setActiveTab('desk')}
+            style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
           >
-            📈 Scalping Desk
+            <BarChart2 size={14} />
+            <span>Scalping Desk</span>
           </button>
           <button 
             className={`tab-pill ${activeTab === 'log' ? 'active' : ''}`}
             onClick={() => setActiveTab('log')}
+            style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
           >
-            📋 Trade History ({activeTradeList.length})
+            <History size={14} />
+            <span>Trade History ({activeTradeList.length})</span>
           </button>
           <button 
             className={`tab-pill ${activeTab === 'risk' ? 'active' : ''}`}
             onClick={() => setActiveTab('risk')}
+            style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
           >
-            🛡️ Risk & Budget
+            <ShieldCheck size={14} />
+            <span>Risk & Budget</span>
           </button>
           <button 
             className={`tab-pill ${activeTab === 'broker' ? 'active' : ''}`}
             onClick={() => setActiveTab('broker')}
+            style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
           >
-            🔑 Upstox Broker
+            <KeyRound size={14} />
+            <span>Upstox Broker</span>
           </button>
         </div>
 
@@ -603,7 +494,7 @@ export const App: React.FC = () => {
                         ₹{(selectedActiveTrade.entry_price * 1.05).toFixed(2)}
                       </div>
                       <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                        {selectedActiveTrade.breakeven_locked ? '✓ STOP LOCKED TO ENTRY' : 'Triggers SL Move to Entry'}
+                        {selectedActiveTrade.breakeven_locked ? 'STOP LOCKED TO ENTRY' : 'Triggers SL Move to Entry'}
                       </span>
                     </div>
 
@@ -662,7 +553,7 @@ export const App: React.FC = () => {
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                     <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-primary)' }}>Central Pivot Range (CPR)</span>
                     <span style={{ fontSize: '11px', fontWeight: 700, color: snap.cpr?.is_narrow ? 'var(--emerald)' : 'var(--text-muted)', background: snap.cpr?.is_narrow ? 'var(--emerald-bg)' : 'transparent', padding: '1px 6px', borderRadius: '4px' }}>
-                      {snap.cpr?.is_narrow ? '✓ NARROW CPR (TRENDING)' : 'WIDE CPR'}
+                      {snap.cpr?.is_narrow ? 'NARROW CPR (TRENDING)' : 'WIDE CPR'}
                     </span>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', textAlign: 'center' }}>
@@ -996,10 +887,14 @@ export const App: React.FC = () => {
             </div>
           ) : (
             <div style={{ textAlign: 'center', padding: '40px 20px', background: 'var(--bg-subtle)', borderRadius: '8px', border: '1px dashed var(--border-default)' }}>
-              <Filter size={24} color="var(--text-muted)" style={{ margin: '0 auto 8px auto' }} />
-              <p style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' }}>No Trades Match Filter Criteria</p>
-              <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
-                Reset filters above or switch between Today's Session and the 169 Historical Audited Trades.
+              <History size={24} color="var(--text-muted)" style={{ margin: '0 auto 8px auto' }} />
+              <p style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                {logView === 'session' ? "No Trades Executed in Current Session" : "No Historical Trades Match Filter Criteria"}
+              </p>
+              <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                {logView === 'session' 
+                  ? "Live session trade ledger is active and waiting for order events. You can toggle '169 Historical Audited Trades' above."
+                  : "Reset your filter selection above to view historical executions."}
               </p>
             </div>
           )}
@@ -1212,11 +1107,19 @@ export const App: React.FC = () => {
                 marginBottom: '14px', 
                 padding: '8px 12px', 
                 borderRadius: '6px',
-                backgroundColor: tokenStatusMsg.startsWith('✓') ? 'var(--emerald-bg)' : 'var(--rose-bg)',
-                color: tokenStatusMsg.startsWith('✓') ? 'var(--emerald)' : 'var(--rose)',
-                border: `1px solid ${tokenStatusMsg.startsWith('✓') ? 'var(--emerald-border)' : 'var(--rose-border)'}`
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                backgroundColor: tokenStatusMsg.includes('Connected') ? 'var(--emerald-bg)' : 'var(--rose-bg)',
+                color: tokenStatusMsg.includes('Connected') ? 'var(--emerald)' : 'var(--rose)',
+                border: `1px solid ${tokenStatusMsg.includes('Connected') ? 'var(--emerald-border)' : 'var(--rose-border)'}`
               }}>
-                {tokenStatusMsg}
+                {tokenStatusMsg.includes('Connected') ? (
+                  <CheckCircle2 size={14} color="var(--emerald)" />
+                ) : (
+                  <AlertTriangle size={14} color="var(--rose)" />
+                )}
+                <span>{tokenStatusMsg}</span>
               </div>
             )}
 
