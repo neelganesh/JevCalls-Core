@@ -261,7 +261,7 @@ async def get_risk_gates():
             "max_data_staleness_sec": config.MAX_DATA_STALENESS_SEC,
             "max_gateway_latency_ms": config.MAX_GATEWAY_LATENCY_MS,
             "session_start": str(config.SESSION_ENTRY_START),
-            "session_end": str(config.SESSION_ENTRY_END),
+            "session_end": str(config.SESSION_ENTRY_CUTOFF),
             "force_exit": str(config.SESSION_FORCE_EXIT)
         }
     }
