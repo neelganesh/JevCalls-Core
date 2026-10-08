@@ -1,0 +1,51 @@
+services:
+  traefik:
+    image: traefik:v3.1
+    command:
+      - "--api.insecure=false"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entryPoints.web.address=:80"
+      - "--entryPoints.websecure.address=:443"
+      - "--certificatesresolvers.myresolver.acme.tlschallenge=true"
+      - "--certificatesresolvers.myresolver.acme.email=admin@antigravity.trade"
+      - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "traefik_certs:/letsencrypt"
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 128M
+
+  jevcalls-backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8000
+      - MAX_DAILY_LOSS_INR=2500.0
+      - MAX_CONSECUTIVE_LOSSES=2
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.jevcalls.rule=Host(`api.jevcall.cfd`)"
+      - "traefik.http.routers.jevcalls.entrypoints=websecure"
+      - "traefik.http.routers.jevcalls.tls.certresolver=myresolver"
+      - "traefik.http.services.jevcalls.loadbalancer.server.port=8000"
+    deploy:
+      resources:
+        limits:
+          cpus: '1.5'
+          memory: 512M
+
+volumes:
+  traefik_certs:

@@ -1,0 +1,33 @@
+name: Deploy Backend (Oracle VM)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'backend/**'
+      - 'docker-compose.yml'
+      - '.github/workflows/deploy-backend.yml'
+  workflow_dispatch:
+
+jobs:
+  deploy-oracle:
+    name: Deploy to Oracle Cloud Instance
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.OCI_HOST }}
+          username: ${{ secrets.OCI_USER || 'ubuntu' }}
+          key: ${{ secrets.OCI_SSH_KEY }}
+          script: |
+            cd /opt/JevCalls-Core || (sudo mkdir -p /opt/JevCalls-Core && sudo chown -R ubuntu:ubuntu /opt/JevCalls-Core && cd /opt/JevCalls-Core)
+            git pull origin main || true
+            docker compose down || true
+            docker compose build --no-cache
+            docker compose up -d --remove-orphans
+            docker system prune -f
+            docker compose ps
