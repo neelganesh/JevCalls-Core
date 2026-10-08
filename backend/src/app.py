@@ -13,6 +13,7 @@ from pydantic import BaseModel
 
 from src.config import config, INDEX_CONFIG
 from src.engine import JevCoreEngine
+from src.market_feed import market_feed
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 logger = logging.getLogger("app")
@@ -50,43 +51,54 @@ class ConnectionManager:
 
 manager = ConnectionManager()
 
-# Background live simulation loop
+# Background live market tick loop
 sim_running = True
 
 async def live_market_loop():
-    logger.info("Initializing live market loop...")
+    logger.info("Initializing live market loop with Upstox / Simulation routing...")
     import random
     
-    # Base prices
     spots = {"NIFTY": 24850.0, "BANKNIFTY": 52100.0, "SENSEX": 81400.0, "FINNIFTY": 23900.0, "MIDCPNIFTY": 12800.0}
     prems = {"NIFTY": 145.0, "BANKNIFTY": 320.0, "SENSEX": 450.0, "FINNIFTY": 130.0, "MIDCPNIFTY": 85.0}
 
     while sim_running:
         try:
-            # Simulate micro-ticks across indices
+            # 1. Check if live Upstox feed is active
+            live_quotes = await market_feed.get_multi_quotes() if market_feed.token else {}
+
             for sym in INDEX_CONFIG.keys():
-                delta = random.uniform(-2.5, 3.0)
-                spots[sym] = round(spots.get(sym, 20000.0) + delta, 2)
-                prem_delta = round(delta * 0.52 + random.uniform(-0.4, 0.4), 2)
+                if live_quotes.get(sym):
+                    spots[sym] = live_quotes[sym]
+                else:
+                    delta = random.uniform(-2.5, 3.0)
+                    spots[sym] = round(spots.get(sym, 20000.0) + delta, 2)
+
+                prem_delta = random.uniform(-1.5, 1.8)
                 prems[sym] = round(max(15.0, prems.get(sym, 100.0) + prem_delta), 2)
 
-                # Process tick through engine & simulator
-                result = engine.ingest_tick(sym, spots[sym], prems[sym])
+                # Process tick
+                engine.ingest_tick(sym, spots[sym], prems[sym])
 
-                # Check for synthetic setup triggering
-                if random.random() < 0.05 and not engine.simulator.active_trades:
+                # Synthetic setup trigger for simulation testing
+                if random.random() < 0.04 and not engine.simulator.active_trades:
                     candles = [
                         {"high": spots[sym] + 30, "low": spots[sym] - 25, "close": spots[sym] - 5, "volume": 1000},
                         {"high": spots[sym] + 40, "low": spots[sym] - 20, "close": spots[sym] + 15, "volume": 1200},
                     ]
                     engine.evaluate_setup(sym, spots[sym], candles, prems[sym], prems[sym])
 
-            # Broadcast real-time telemetry every 500ms
+            # Broadcast real-time telemetry including Trade History Log
             telemetry = {
                 "type": "TICK_UPDATE",
                 "snapshots": engine.market_snapshots,
                 "active_trades": engine.simulator.active_trades,
+                "trade_history": list(reversed(engine.simulator.trade_history[-20:])),
                 "summary": engine.simulator.get_simulation_summary(),
+                "broker": {
+                    "is_live": market_feed.is_connected,
+                    "has_token": bool(market_feed.token),
+                    "last_error": market_feed.last_error
+                }
             }
             await manager.broadcast(telemetry)
 
@@ -103,17 +115,40 @@ async def startup_event():
 async def websocket_endpoint(websocket: WebSocket):
     await manager.connect(websocket)
     try:
-        # Send immediate initial state
         await websocket.send_json({
             "type": "INIT_STATE",
             "snapshots": engine.market_snapshots,
             "active_trades": engine.simulator.active_trades,
+            "trade_history": list(reversed(engine.simulator.trade_history[-20:])),
             "summary": engine.simulator.get_simulation_summary(),
+            "broker": {
+                "is_live": market_feed.is_connected,
+                "has_token": bool(market_feed.token),
+                "last_error": market_feed.last_error
+            }
         })
         while True:
-            data = await websocket.receive_text()
+            await websocket.receive_text()
     except WebSocketDisconnect:
         manager.disconnect(websocket)
+
+class TokenRequest(BaseModel):
+    token: str
+
+@app.post("/api/broker/token")
+async def update_broker_token(req: TokenRequest):
+    market_feed.set_token(req.token)
+    res = await market_feed.test_connection()
+    return res
+
+@app.get("/api/broker/status")
+async def get_broker_status():
+    res = await market_feed.test_connection()
+    return {
+        "is_connected": market_feed.is_connected,
+        "has_token": bool(market_feed.token),
+        "details": res
+    }
 
 @app.get("/api/status")
 async def get_status():
