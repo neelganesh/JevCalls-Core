@@ -260,8 +260,8 @@ async def get_risk_gates():
             "max_risk_per_trade_pct": config.MAX_RISK_PER_TRADE_PCT,
             "max_data_staleness_sec": config.MAX_DATA_STALENESS_SEC,
             "max_gateway_latency_ms": config.MAX_GATEWAY_LATENCY_MS,
-            "session_start": config.SESSION_ENTRY_START.strftime("%H:%M:%S"),
-            "session_end": config.SESSION_ENTRY_END.strftime("%H:%M:%S"),
-            "force_exit": config.SESSION_FORCE_EXIT.strftime("%H:%M:%S")
+            "session_start": str(config.SESSION_ENTRY_START),
+            "session_end": str(config.SESSION_ENTRY_END),
+            "force_exit": str(config.SESSION_FORCE_EXIT)
         }
     }
