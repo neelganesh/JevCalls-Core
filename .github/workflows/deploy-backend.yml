@@ -26,8 +26,7 @@ jobs:
           script: |
             cd /opt/JevCalls-Core || (sudo mkdir -p /opt/JevCalls-Core && sudo chown -R ubuntu:ubuntu /opt/JevCalls-Core && cd /opt/JevCalls-Core)
             git pull origin main || true
-            docker compose down || true
-            docker compose build --no-cache
+            docker compose build
             docker compose up -d --remove-orphans
             docker system prune -f
             docker compose ps
